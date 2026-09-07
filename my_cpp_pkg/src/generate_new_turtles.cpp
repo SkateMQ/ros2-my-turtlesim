@@ -67,9 +67,9 @@ private:
         msg.set__x(request->x);
         msg.set__y(request->y);
         new_turtle_pub_->publish(msg);
-        RCLCPP_INFO(this->get_logger(), 
-                    "[%s] has been created, posion: x: %f, y: %f", 
-                    response->name.c_str(), request->x, request->y);
+        // RCLCPP_INFO(this->get_logger(), 
+        //             "[%s] has been created, posion: x: %f, y: %f", 
+        //             response->name.c_str(), request->x, request->y);
     }
 
     void callbackAvailableName(const example_interfaces::msg::String::SharedPtr msg)

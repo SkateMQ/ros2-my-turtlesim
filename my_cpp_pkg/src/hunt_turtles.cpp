@@ -24,7 +24,7 @@ class HuntTurtlesNode : public rclcpp::Node
 {
 public:
     HuntTurtlesNode() : Node("hunt_turtles"), curr_x_(5.544445f), curr_y_(5.544445f), curr_theta_(0.0f), 
-                                            min_distance_squa_(std::numeric_limits<float>::max()), is_hunting_(false)
+                                            is_hunting_(false)
     {
         this->declare_parameter("linear_kp", 1.0);
         this->declare_parameter("linear_ki", 0.0);
@@ -74,7 +74,7 @@ private:
         if (is_hunting_)
         {
             float linear_err = computeLinearErr();
-            RCLCPP_INFO(this->get_logger(), "linear_err: %f", linear_err);
+            // RCLCPP_INFO(this->get_logger(), "linear_err: %f", linear_err);
             eatIfNear(linear_err);
             float angular_err = computeAngularErr();
 
@@ -101,8 +101,8 @@ private:
 
     float computeLinearErr()
     {
-        RCLCPP_INFO(this->get_logger(), "curr_prey: %s, des_x_: %f, des_y_: %f, curr_x_: %f, curr_y_: %f", 
-                                        curr_prey_.c_str(), des_x_, des_y_, curr_x_, curr_y_);
+        // RCLCPP_INFO(this->get_logger(), "curr_prey: %s, des_x_: %f, des_y_: %f, curr_x_: %f, curr_y_: %f", 
+        //                                 curr_prey_.c_str(), des_x_, des_y_, curr_x_, curr_y_);
         float x_err = des_x_ - curr_x_;
         float y_err = des_y_ - curr_y_;
 
@@ -173,20 +173,20 @@ private:
 
     void findNearestTurtle()
     {
-        min_distance_squa_ = std::numeric_limits<float>::max();
         if (alive_turtle_map_.empty())
         {
             RCLCPP_WARN(this->get_logger(), "There is no turtle now!");
             return;
         }
 
+        float min_distance_squa = std::numeric_limits<float>::max();
         for (auto it : alive_turtle_map_)
         {
             float x_diff = curr_x_ - it.second.first;
             float y_diff = curr_y_ - it.second.second;
-            if (x_diff * x_diff + y_diff * y_diff < min_distance_squa_)
+            if (x_diff * x_diff + y_diff * y_diff < min_distance_squa)
             {
-                min_distance_squa_ = x_diff * x_diff + y_diff * y_diff;
+                min_distance_squa = x_diff * x_diff + y_diff * y_diff;
                 curr_prey_ = it.first;
                 des_x_ = it.second.first;
                 des_y_ = it.second.second;
@@ -200,25 +200,30 @@ private:
         curr_x_ = msg->x;
         curr_y_ = msg->y;
         curr_theta_ = msg->theta;
-        if (is_hunting_)
-        {
-            float x_diff = curr_x_ - des_x_;
-            float y_diff = curr_y_ - des_y_;
-            min_distance_squa_ = x_diff * x_diff + y_diff * y_diff;
-        }
-        
         // RCLCPP_INFO(this->get_logger(), "x: %f, y: %f, theta: %f", curr_x_, curr_y_, curr_theta_);
     }
 
     void callbackNewTurtle(const my_robot_interfaces::msg::NewTurtleInfo::SharedPtr msg)
     {
         alive_turtle_map_[msg->name] = {msg->x, msg->y};
-        float x_diff = curr_x_ - msg->x;
-        float y_diff = curr_y_ - msg->y;
-        if (x_diff * x_diff + y_diff * y_diff < min_distance_squa_)
+        if (alive_turtle_map_.size() == 1)
         {
-            min_distance_squa_ = x_diff * x_diff + y_diff * y_diff;
+            RCLCPP_WARN(this->get_logger(), "There is only one prey.");
+            curr_prey_ = msg->name;
+            des_x_ = msg->x;
+            des_y_ = msg->y;
+            is_hunting_ = true;
+            clearPid();
+            return;
+        }
 
+        float des_distance_squa = (curr_x_ - des_x_) * (curr_x_ - des_x_) + (curr_y_ - des_y_) * (curr_y_ - des_y_);
+        float curr_distance_squa = (curr_x_ - msg->x) * (curr_x_ - msg->x) + (curr_y_ - msg->y) * (curr_y_ - msg->y);
+
+        if (curr_distance_squa < des_distance_squa)
+        {
+            // RCLCPP_WARN(this->get_logger(), "Target has changed from [%s] to [%s].", curr_prey_.c_str(), msg->name.c_str());
+            // RCLCPP_INFO(this->get_logger(), "x: %f, y: %f, theta: %f", curr_x_, curr_y_, curr_theta_);
             curr_prey_ = msg->name;
             des_x_ = msg->x;
             des_y_ = msg->y;
@@ -241,8 +246,6 @@ private:
     float curr_x_;
     float curr_y_;
     float curr_theta_;
-
-    float min_distance_squa_;
 
     std::string curr_prey_;
     float des_x_;
