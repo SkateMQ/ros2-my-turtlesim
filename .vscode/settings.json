@@ -1,0 +1,15 @@
+{
+    "ROS2.distro": "jazzy",
+    "python.autoComplete.extraPaths": [
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
+    "python.analysis.extraPaths": [
+        "/opt/ros/jazzy/lib/python3.12/site-packages"
+    ],
+    "cmake.sourceDirectory": "/home/maself/ros2_ws/src/my_cpp_pkg",
+    "cmake.environment": {
+        "CMAKE_PREFIX_PATH": "/opt/ros/jazzy",
+        "ROS_DISTRO": "jazzy",
+        "ROS_VERSION": "2"
+    }
+}

@@ -1,0 +1,24 @@
+/robot_news_station_giskard:
+  ros__parameters:
+    robot_name: "giskard"
+    timer_period: 1.0
+
+/robot_news_station_bb8:
+  ros__parameters:
+    robot_name: "bb8"
+    timer_period: 2.0
+
+/robot_news_station_daneel:
+  ros__parameters:
+    robot_name: "daneel"
+    timer_period: 3.0
+
+/robot_news_station_jander:
+  ros__parameters:
+    robot_name: "jander"
+    timer_period: 4.0
+
+/robot_news_station_c3po:
+  ros__parameters:
+    robot_name: "c3po"
+    timer_period: 5.0
