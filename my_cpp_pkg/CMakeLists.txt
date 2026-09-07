@@ -47,13 +47,10 @@ add_executable(battery src/battery.cpp)
 ament_target_dependencies(battery rclcpp my_robot_interfaces)
 
 add_executable(generate_new_turtles src/generate_new_turtles.cpp)
-ament_target_dependencies(generate_new_turtles rclcpp turtlesim my_robot_interfaces)
+ament_target_dependencies(generate_new_turtles rclcpp turtlesim my_robot_interfaces example_interfaces)
 
-add_executable(eat_turtle src/eat_turtle.cpp)
-ament_target_dependencies(eat_turtle rclcpp turtlesim my_robot_interfaces)
-
-add_executable(move_turtle src/move_turtle.cpp)
-ament_target_dependencies(move_turtle rclcpp turtlesim my_robot_interfaces geometry_msgs)
+add_executable(hunt_turtles src/hunt_turtles.cpp)
+ament_target_dependencies(hunt_turtles rclcpp turtlesim my_robot_interfaces geometry_msgs example_interfaces)
 
 install(TARGETS
   cpp_node
@@ -68,8 +65,7 @@ install(TARGETS
   led_panel
   battery
   generate_new_turtles
-  eat_turtle
-  move_turtle
+  hunt_turtles
   DESTINATION lib/${PROJECT_NAME}
 )
 

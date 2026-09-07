@@ -2,8 +2,8 @@
 #include <limits>
 #include "rclcpp/rclcpp.hpp"
 #include "turtlesim/srv/spawn.hpp"
-#include "my_robot_interfaces/srv/delete_dead_turtle.hpp"
-#include "my_robot_interfaces/srv/find_nearest_turtle.hpp"
+#include "my_robot_interfaces/msg/new_turtle_info.hpp"
+#include "example_interfaces/msg/string.hpp"
 
 using namespace std::chrono_literals;
 
@@ -15,21 +15,18 @@ public:
                                dist_(0.0f, 11.0f),
                                suffix_count_(1)
     {
+        this->declare_parameter("spawn_period", 2.0);
         spawn_client_ = this->create_client<turtlesim::srv::Spawn>("spawn");
-        spawn_timer_ = this->create_wall_timer(2s, [this](){callSpawn();});
-        delete_server_ = this->create_service<my_robot_interfaces::srv::DeleteDeadTurtle>(
-                                    "delete_dead_turtle", 
-                                    [this](const std::shared_ptr<my_robot_interfaces::srv::DeleteDeadTurtle::Request> request, 
-                                        const std::shared_ptr<my_robot_interfaces::srv::DeleteDeadTurtle::Response> response) {
-                                        callbackDeleteTurtle(request, response);
-                                    });
+        spawn_timer_ = this->create_wall_timer(
+                        std::chrono::duration<double>(this->get_parameter("spawn_period").as_double()), 
+                        [this](){callSpawn();});
 
-        find_server_ = this->create_service<my_robot_interfaces::srv::FindNearestTurtle>(
-                                    "find_nearest_turtle", 
-                                    [this](const std::shared_ptr<my_robot_interfaces::srv::FindNearestTurtle::Request> request, 
-                                        const std::shared_ptr<my_robot_interfaces::srv::FindNearestTurtle::Response> response) {
-                                            callbackFindNearestTurtle(request, response);
-                                        });
+        new_turtle_pub_ = this->create_publisher<my_robot_interfaces::msg::NewTurtleInfo>("new_turtle_info", 10);
+        available_name_sub_ = this->create_subscription<example_interfaces::msg::String>(
+                                    "available_name", 10, 
+                                    [this](const example_interfaces::msg::String::SharedPtr msg){
+                                        callbackAvailableName(msg);
+                                    });
     }
 
 private:
@@ -65,77 +62,19 @@ private:
                            const turtlesim::srv::Spawn::Request::SharedPtr request)
     {
         auto response = future.get();
-        alive_turtle_map_[response->name] = {request->x, request->y};
+        auto msg = my_robot_interfaces::msg::NewTurtleInfo();
+        msg.set__name(response->name);
+        msg.set__x(request->x);
+        msg.set__y(request->y);
+        new_turtle_pub_->publish(msg);
         RCLCPP_INFO(this->get_logger(), 
                     "[%s] has been created, posion: x: %f, y: %f", 
                     response->name.c_str(), request->x, request->y);
-        // for (auto it : alive_turtle_map_)
-        // {
-        //     RCLCPP_INFO(this->get_logger(), 
-        //             "{name: %s, x: %f, y: %f}   ", 
-        //             it.first.c_str(), it.second.first, it.second.second);
-        // }
     }
 
-    void callbackDeleteTurtle(const my_robot_interfaces::srv::DeleteDeadTurtle::Request::SharedPtr request,
-                              const my_robot_interfaces::srv::DeleteDeadTurtle::Response::SharedPtr response)
+    void callbackAvailableName(const example_interfaces::msg::String::SharedPtr msg)
     {
-        std::string name = request->turtle_name;
-
-        RCLCPP_INFO(this->get_logger(), "Call DeleteTurtle");
-
-        // for (auto it : alive_turtle_map_)
-        // {
-        //     RCLCPP_INFO(this->get_logger(), 
-        //             "{name: %s, x: %f, y: %f}   ", 
-        //             it.first.c_str(), it.second.first, it.second.second);
-        // }
-
-        if (alive_turtle_map_.find(name) == alive_turtle_map_.end())
-        {
-            response->set__success(false);
-            RCLCPP_ERROR(this->get_logger(), "Counldn't find turtle [%s]", name.c_str());
-            return;
-        }
-
-        size_t deletedCount = alive_turtle_map_.erase(name);
-        if (deletedCount > 0)
-        {
-            response->set__success(true);
-            available_name_vec_.push_back(name);
-            return;
-        }
-        
-        response->set__success(false);
-        RCLCPP_ERROR(this->get_logger(), "Counldn't delete turtle [%s] from record", name.c_str());
-    }
-
-    void callbackFindNearestTurtle(const my_robot_interfaces::srv::FindNearestTurtle::Request::SharedPtr request,
-                              const my_robot_interfaces::srv::FindNearestTurtle::Response::SharedPtr response)
-    {
-        RCLCPP_INFO(this->get_logger(), "Call FindNearestTurtle");
-        if (alive_turtle_map_.empty())
-        {
-            response->set__there_are_turtles(false);
-            RCLCPP_WARN(this->get_logger(), "There is no turtle now!");
-            return;
-        }
-
-        response->set__there_are_turtles(true);
-        response->set__turtle_name(alive_turtle_map_.begin()->first);   
-        float min_distance = std::numeric_limits<float>::max();
-        for (auto it : alive_turtle_map_)
-        {
-            float x_diff = request->x - it.second.first;
-            float y_diff = request->y - it.second.second;
-            if (x_diff * x_diff + y_diff * y_diff < min_distance)
-            {
-                min_distance = x_diff * x_diff + y_diff * y_diff;
-                response->set__turtle_name(it.first);
-                response->set__x(it.second.first);
-                response->set__y(it.second.second);
-            }
-        }
+        available_name_vec_.push_back(msg->data);
     }
 
     std::mt19937 gen_;
@@ -148,8 +87,8 @@ private:
     rclcpp::Client<turtlesim::srv::Spawn>::SharedPtr spawn_client_;
     rclcpp::TimerBase::SharedPtr spawn_timer_;
 
-    rclcpp::Service<my_robot_interfaces::srv::DeleteDeadTurtle>::SharedPtr delete_server_;
-    rclcpp::Service<my_robot_interfaces::srv::FindNearestTurtle>::SharedPtr find_server_;
+    rclcpp::Publisher<my_robot_interfaces::msg::NewTurtleInfo>::SharedPtr new_turtle_pub_;
+    rclcpp::Subscription<example_interfaces::msg::String>::SharedPtr available_name_sub_;
 };
 
 int main(int argc, char **argv)
