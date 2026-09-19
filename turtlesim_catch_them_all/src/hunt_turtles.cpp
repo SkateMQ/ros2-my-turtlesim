@@ -36,6 +36,8 @@ public:
 
         this->declare_parameter("eat_error", 0.0001);
 
+        this->declare_parameter("control_period", 0.015);
+
         min_eat_error_ = this->get_parameter("eat_error").as_double();
 
         linear_pid_.kp = (float)this->get_parameter("linear_kp").as_double();
@@ -62,7 +64,6 @@ public:
         cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/turtle1/cmd_vel", 10);
         available_name_pub_ = this->create_publisher<example_interfaces::msg::String>("available_name", 10);
 
-        this->declare_parameter("control_period", 0.2);
         moving_control_timer_ = this->create_wall_timer(
                                 std::chrono::duration<double>(this->get_parameter("control_period").as_double()), 
                                 [this](){ movingControl(); });

@@ -1,11 +1,11 @@
 <launch>
     <node pkg="turtlesim" exec="turtlesim_node" />
 
-    <node pkg="my_cpp_pkg" exec="hunt_turtles">
+    <node pkg="turtlesim_catch_them_all" exec="hunt_turtles">
         <param from="$(find-pkg-share my_robot_bringup)/config/turtlesim_hunting_app.yaml" />
     </node>
 
-    <node pkg="my_cpp_pkg" exec="generate_new_turtles">
+    <node pkg="turtlesim_catch_them_all" exec="generate_new_turtles">
         <param from="$(find-pkg-share my_robot_bringup)/config/turtlesim_hunting_app.yaml" />
     </node>
 </launch>

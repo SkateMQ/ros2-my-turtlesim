@@ -15,7 +15,7 @@ public:
                                dist_(0.0f, 11.0f),
                                suffix_count_(1)
     {
-        this->declare_parameter("spawn_period", 2.0);
+        this->declare_parameter("spawn_period", 1.0);
         spawn_client_ = this->create_client<turtlesim::srv::Spawn>("spawn");
         spawn_timer_ = this->create_wall_timer(
                         std::chrono::duration<double>(this->get_parameter("spawn_period").as_double()), 
